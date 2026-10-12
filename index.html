@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safari</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23007AFF'/><path d='M50 15 L58 42 L85 42 L63 58 L72 85 L50 68 L28 85 L37 58 L15 42 L42 42 Z' fill='white'/></svg>" />
+  <style>
+    :root {
+      --toolbar-bg: rgba(246, 246, 246, 0.92);
+      --toolbar-border: rgba(0, 0, 0, 0.12);
+      --address-bg: #ffffff;
+      --text: #1d1d1f;
+      --secondary: #86868b;
+      --accent: #007AFF;
+      --traffic-red: #FF5F57;
+      --traffic-yellow: #FEBC2E;
+      --traffic-green: #28C840;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #e8e8ed;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .window {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      background: #fff;
+    }
+
+    .titlebar {
+      height: 38px;
+      background: var(--toolbar-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--toolbar-border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .traffic {
+      display: flex;
+      gap: 8px;
+      margin-right: 10px;
+    }
+
+    .traffic button {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: none;
+      cursor: default;
+      position: relative;
+    }
+
+    .traffic .close { background: var(--traffic-red); }
+    .traffic .minimize { background: var(--traffic-yellow); }
+    .traffic .maximize { background: var(--traffic-green); }
+
+    .traffic button:hover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.12);
+    }
+
+    .title {
+      flex: 1;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--secondary);
+      pointer-events: none;
+    }
+
+    .toolbar {
+      height: 52px;
+      background: var(--toolbar-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--toolbar-border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .nav-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: background 0.15s;
+    }
+
+    .nav-btn:hover { background: rgba(0,0,0,0.06); }
+    .nav-btn:active { background: rgba(0,0,0,0.1); }
+    .nav-btn:disabled { opacity: 0.35; cursor: default; }
+    .nav-btn:disabled:hover { background: transparent; }
+
+    .nav-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .address-wrap {
+      flex: 1;
+      height: 34px;
+      background: var(--address-bg);
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .address-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.2);
+    }
+
+    .lock {
+      width: 14px;
+      height: 14px;
+      color: var(--secondary);
+      flex-shrink: 0;
+    }
+
+    #url {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--text);
+      min-width: 0;
+    }
+
+    #url::placeholder { color: #a1a1a6; }
+
+    .reload-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--secondary);
+    }
+
+    .reload-btn:hover { background: rgba(0,0,0,0.05); color: var(--text); }
+
+    .content {
+      flex: 1;
+      position: relative;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    #frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      background: #fff;
+    }
+
+    .start-page {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, #f5f5f7 0%, #e8e8ed 100%);
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .start-page.hidden { display: none; }
+
+    .logo {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 20px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #007AFF, #5AC8FA);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 24px rgba(0,122,255,0.25);
+    }
+
+    .logo svg { width: 40px; height: 40px; fill: white; }
+
+    .start-page h1 {
+      font-size: 28px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      margin-bottom: 8px;
+    }
+
+    .start-page p {
+      font-size: 15px;
+      color: var(--secondary);
+      max-width: 360px;
+      line-height: 1.45;
+      margin-bottom: 28px;
+    }
+
+    .quick-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      max-width: 520px;
+    }
+
+    .quick-link {
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.8);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 20px;
+      font-size: 14px;
+      color: var(--text);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    .quick-link:hover {
+      background: #fff;
+      transform: translateY(-1px);
+    }
+
+    .statusbar {
+      height: 22px;
+      background: var(--toolbar-bg);
+      border-top: 1px solid var(--toolbar-border);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 11px;
+      color: var(--secondary);
+      flex-shrink: 0;
+    }
+
+    .statusbar .url-preview {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .loading-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 2px;
+      background: var(--accent);
+      width: 0;
+      transition: width 0.3s;
+      z-index: 10;
+      opacity: 0;
+    }
+
+    .loading-bar.active {
+      opacity: 1;
+      width: 70%;
+      animation: load 1.2s ease-in-out infinite;
+    }
+
+    @keyframes load {
+      0% { width: 0; left: 0; }
+      50% { width: 70%; left: 15%; }
+      100% { width: 0; left: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="window">
+    <div class="titlebar">
+      <div class="traffic">
+        <button class="close" title="Close"></button>
+        <button class="minimize" title="Minimize"></button>
+        <button class="maximize" title="Maximize"></button>
+      </div>
+      <div class="title" id="page-title">Safari</div>
+    </div>
+
+    <div class="toolbar">
+      <button class="nav-btn" id="btn-back" title="Back" disabled>
+        <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <button class="nav-btn" id="btn-forward" title="Forward" disabled>
+        <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+
+      <div class="address-wrap">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+        <input id="url" type="text" placeholder="Search or enter website name" autocomplete="off" spellcheck="false" />
+        <button class="reload-btn" id="btn-reload" title="Reload">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="loading-bar" id="loading"></div>
+
+      <div class="start-page" id="start">
+        <div class="logo">
+          <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="none"/><path d="M50 18 L57 42 L82 42 L62 57 L70 82 L50 66 L30 82 L38 57 L18 42 L43 42 Z" fill="white"/></svg>
+        </div>
+        <h1>Safari</h1>
+        <p>Enter a URL above or pick a quick link. Clean proxy-style browser shell with no sidebar or extra features.</p>
+        <div class="quick-links">
+          <button class="quick-link" data-url="https://www.apple.com">Apple</button>
+          <button class="quick-link" data-url="https://developer.apple.com">Developer</button>
+          <button class="quick-link" data-url="https://www.wikipedia.org">Wikipedia</button>
+          <button class="quick-link" data-url="https://news.ycombinator.com">Hacker News</button>
+          <button class="quick-link" data-url="https://github.com">GitHub</button>
+        </div>
+      </div>
+
+      <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-downloads" allow="fullscreen" style="display:none"></iframe>
+    </div>
+
+    <div class="statusbar">
+      <span class="url-preview" id="status">Ready</span>
+    </div>
+  </div>
+
+  <script>
+    const frame = document.getElementById('frame');
+    const urlInput = document.getElementById('url');
+    const startPage = document.getElementById('start');
+    const pageTitle = document.getElementById('page-title');
+    const status = document.getElementById('status');
+    const loading = document.getElementById('loading');
+    const btnBack = document.getElementById('btn-back');
+    const btnForward = document.getElementById('btn-forward');
+    const btnReload = document.getElementById('btn-reload');
+
+    let historyStack = [];
+    let historyIndex = -1;
+
+    function normalizeUrl(raw) {
+      let u = raw.trim();
+      if (!u) return null;
+      if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(u) && !u.includes('.')) {
+        return 'https://duckduckgo.com/?q=' + encodeURIComponent(u);
+      }
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+      try {
+        new URL(u);
+        return u;
+      } catch {
+        return 'https://duckduckgo.com/?q=' + encodeURIComponent(raw);
+      }
+    }
+
+    function setLoading(on) {
+      loading.classList.toggle('active', on);
+    }
+
+    function navigate(raw, push = true) {
+      const target = normalizeUrl(raw);
+      if (!target) return;
+
+      urlInput.value = target;
+      startPage.classList.add('hidden');
+      frame.style.display = 'block';
+      setLoading(true);
+      status.textContent = 'Loading\u2026';
+
+      frame.src = target;
+
+      if (push) {
+        historyStack = historyStack.slice(0, historyIndex + 1);
+        historyStack.push(target);
+        historyIndex = historyStack.length - 1;
+      }
+
+      updateNavButtons();
+    }
+
+    function updateNavButtons() {
+      btnBack.disabled = historyIndex <= 0;
+      btnForward.disabled = historyIndex >= historyStack.length - 1;
+    }
+
+    urlInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        navigate(urlInput.value);
+      }
+    });
+
+    btnReload.addEventListener('click', () => {
+      if (frame.src && frame.src !== 'about:blank') {
+        setLoading(true);
+        frame.src = frame.src;
+      }
+    });
+
+    btnBack.addEventListener('click', () => {
+      if (historyIndex > 0) {
+        historyIndex--;
+        navigate(historyStack[historyIndex], false);
+      }
+    });
+
+    btnForward.addEventListener('click', () => {
+      if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        navigate(historyStack[historyIndex], false);
+      }
+    });
+
+    document.querySelectorAll('.quick-link').forEach(btn => {
+      btn.addEventListener('click', () => navigate(btn.dataset.url));
+    });
+
+    frame.addEventListener('load', () => {
+      setLoading(false);
+      try {
+        const href = frame.contentWindow.location.href;
+        if (href && href !== 'about:blank') {
+          urlInput.value = href;
+          status.textContent = href;
+          try {
+            pageTitle.textContent = frame.contentDocument.title || 'Safari';
+          } catch {
+            pageTitle.textContent = new URL(href).hostname;
+          }
+        }
+      } catch {
+        status.textContent = urlInput.value;
+        pageTitle.textContent = 'Safari';
+      }
+    });
+
+    urlInput.focus();
+  </script>
+</body>
+</html>
